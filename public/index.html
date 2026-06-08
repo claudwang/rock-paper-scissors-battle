@@ -21,11 +21,11 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 .btn{padding:14px 40px;border:none;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:1px}
 .btn:active{transform:scale(0.95)}
 .btn-primary{background:linear-gradient(135deg,#ffd54f,#f0a030);color:#1a1a2e;box-shadow:0 4px 24px rgba(240,160,48,0.35)}
-.btn-primary:hover{box-shadow:0 6px 32px rgba(240,160,48,0.5);transform:translateY(-2px)}
+@media(hover:hover){.btn-primary:hover{box-shadow:0 6px 32px rgba(240,160,48,0.5);transform:translateY(-2px)}}
 .btn-secondary{background:rgba(255,255,255,0.08);color:var(--text-dim);border:1px solid rgba(255,255,255,0.12);padding:10px 28px;font-size:14px}
-.btn-secondary:hover{color:var(--text);border-color:rgba(255,255,255,0.25)}
+@media(hover:hover){.btn-secondary:hover{color:var(--text);border-color:rgba(255,255,255,0.25)}}
 .btn-play-again{padding:16px 56px;font-size:18px;background:linear-gradient(135deg,#6a5acd,#836fff);color:#fff;box-shadow:0 4px 24px rgba(106,90,205,0.4)}
-.btn-play-again:hover{box-shadow:0 6px 36px rgba(106,90,205,0.55);transform:translateY(-2px)}
+@media(hover:hover){.btn-play-again:hover{box-shadow:0 6px 36px rgba(106,90,205,0.55);transform:translateY(-2px)}}
 
 /* 菜单 */
 #menu-screen h1{font-size:38px;font-weight:800;background:linear-gradient(135deg,#ffd54f,#f0a030,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;text-align:center;line-height:1.2}
@@ -105,13 +105,13 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 
 .card-hand{width:100%;padding:12px 20px 24px;display:flex;align-items:center;justify-content:center;gap:20px;flex-shrink:0}
 .play-card{width:110px;height:150px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);color:#fff;font-weight:600;border:2px solid transparent}
-.play-card:hover{transform:translateY(-12px)}
+@media(hover:hover){.play-card:hover{transform:translateY(-12px)}}
 .play-card.rock{background:linear-gradient(160deg,#6b4c1e,#3d2a0c);border-color:var(--card-rock-glow);box-shadow:0 6px 28px rgba(155,107,28,0.3)}
-.play-card.rock:hover{box-shadow:0 10px 40px rgba(240,160,48,0.45)}
+@media(hover:hover){.play-card.rock:hover{box-shadow:0 10px 40px rgba(240,160,48,0.45)}}
 .play-card.paper{background:linear-gradient(160deg,#9a9078,#5a5244);border-color:var(--card-paper-glow);box-shadow:0 6px 28px rgba(200,180,140,0.25)}
-.play-card.paper:hover{box-shadow:0 10px 40px rgba(255,233,176,0.4)}
+@media(hover:hover){.play-card.paper:hover{box-shadow:0 10px 40px rgba(255,233,176,0.4)}}
 .play-card.scissors{background:linear-gradient(160deg,#3a5c78,#1a3040);border-color:var(--card-scissors-glow);box-shadow:0 6px 28px rgba(74,124,155,0.25)}
-.play-card.scissors:hover{box-shadow:0 10px 40px rgba(106,184,224,0.4)}
+@media(hover:hover){.play-card.scissors:hover{box-shadow:0 10px 40px rgba(106,184,224,0.4)}}
 .play-card .card-icon{font-size:42px}
 .play-card .card-label{font-size:14px;letter-spacing:2px}
 .card-hand.played .play-card{opacity:0.4;cursor:not-allowed;transform:none;pointer-events:none}
