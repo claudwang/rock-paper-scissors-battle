@@ -6,8 +6,8 @@ const path = require('path');
 const PORT = process.env.PORT || 3002;
 const ROUND_TIME = 30;
 const WIN_SCORE = 5;
-const RESULT_DELAY = 4;
-const MATCH_OVER_DELAY = 6;
+const RESULT_DELAY = 2;
+const MATCH_OVER_DELAY = 3;
 const COUNTDOWN_SECS = 3;
 
 // ==================== HTTP 静态文件服务 ====================
