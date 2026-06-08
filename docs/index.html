@@ -118,10 +118,11 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
   width:100px;height:140px;border-radius:16px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   cursor:pointer;color:#fff;font-weight:600;border:2px solid transparent;
-  transition:box-shadow 0.25s, opacity 0.25s;
   -webkit-user-select:none;user-select:none;
-  /* 动画用 transform, transition 关闭 transform 过渡防止与 animation 冲突 */
-  transition:box-shadow 0.25s, opacity 0.25s;
+  /* 默认位置 */
+  transform:translateY(0) scale(1);
+  /* transition 控制所有状态变化的过渡 */
+  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s, opacity 0.25s;
 }
 .play-card .card-icon{font-size:38px}
 .play-card .card-label{font-size:13px;letter-spacing:2px}
@@ -140,19 +141,16 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 }
 
 /* 出牌后的状态 */
-.card-hand.played .play-card{opacity:0.35;cursor:not-allowed;pointer-events:none;transform:none!important}
+.card-hand.played .play-card{opacity:0.35;cursor:not-allowed;pointer-events:none;transform:translateY(0) scale(1)!important}
 
-/* 选中状态 — 关键修复：用 forwards 保持动画终态 */
+/* 选中状态 — 用 transition 做弹跳，不用 animation */
 .play-card.selected{
-  animation:cardSelect 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  transform:translateY(-14px) scale(1.08);
   opacity:1!important;
   pointer-events:none;
 }
-@keyframes cardSelect{
-  0%{transform:translateY(0) scale(1)}
-  40%{transform:translateY(-24px) scale(1.1)}
-  70%{transform:translateY(-6px) scale(1.05)}
-  100%{transform:translateY(-10px) scale(1.06)}
+.play-card.bounce-up{
+  transform:translateY(-28px) scale(1.14);
 }
 
 /* ===== 比赛结束 ===== */
@@ -451,21 +449,20 @@ function showCountdown(s) {
 function selectCard(cardName) {
   playCards.forEach(c => {
     if (c.classList.contains(cardName)) {
-      // 先清除之前的动画状态（如果有）
-      c.classList.remove('selected');
-      void c.offsetWidth; // 强制 reflow，确保动画从头播放
-      c.classList.add('selected');
+      // 第1步：先弹到最高点（bounce-up）
+      c.classList.add('bounce-up');
+      // 第2步：150ms 后落回稳定位置（selected）
+      setTimeout(() => {
+        c.classList.remove('bounce-up');
+        c.classList.add('selected');
+      }, 150);
     }
   });
 }
 
 function deselectCards() {
   playCards.forEach(c => {
-    c.classList.remove('selected');
-    // 关键：强制清除 animation fill 遗留的 transform
-    c.style.animation = 'none';
-    void c.offsetWidth; // 强制 reflow
-    c.style.animation = '';
+    c.classList.remove('selected', 'bounce-up');
   });
 }
 
