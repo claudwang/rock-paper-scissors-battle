@@ -490,9 +490,19 @@ function initPeer(id) {
     if (conn) return;
     conn = incoming;
     setupConnection();
-    console.log('Opponent connected');
+    console.log('Opponent connected, dataChannel open:', conn.open);
     menuStatus.textContent = '✅ 对手已连接!';
-    startGame();
+
+    // 确保 DataChannel 完全就绪后再开始游戏
+    if (conn.open) {
+      startGame();
+    } else {
+      console.log('Waiting for dataChannel to open...');
+      conn.on('open', () => {
+        console.log('DataChannel open, starting game');
+        startGame();
+      });
+    }
   });
 
   peer.on('error', (err) => {
@@ -542,7 +552,16 @@ function handleIncomingConnection(incoming) {
   if (conn) return;
   conn = incoming;
   setupConnection();
-  startGame();
+  menuStatus.textContent = '✅ 对手已连接!';
+  console.log('Incoming connection (retry), dataChannel open:', conn.open);
+  if (conn.open) {
+    startGame();
+  } else {
+    conn.on('open', () => {
+      console.log('DataChannel open (retry), starting game');
+      startGame();
+    });
+  }
 }
 
 function connectToHost(code) {
