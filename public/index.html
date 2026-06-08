@@ -115,15 +115,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 .play-card .card-icon{font-size:42px}
 .play-card .card-label{font-size:14px;letter-spacing:2px}
 .card-hand.played .play-card{opacity:0.4;cursor:not-allowed;transform:none;pointer-events:none}
-.play-card.selected{animation:cardSelect 0.5s ease-out;opacity:1!important;transform:translateY(-10px)}
-@keyframes cardSelect{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-20px) scale(1.05)}100%{transform:translateY(-10px) scale(1)}}
-
-#result-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:16px 36px;border-radius:30px;font-size:20px;font-weight:700;z-index:100;pointer-events:none;display:none;animation:toastIn 0.4s ease-out}
-#result-toast.show{display:block}
-#result-toast.win{background:rgba(76,175,132,0.25);color:var(--win);border:1px solid rgba(76,175,132,0.4)}
-#result-toast.lose{background:rgba(224,85,85,0.25);color:var(--lose);border:1px solid rgba(224,85,85,0.4)}
-#result-toast.draw{background:rgba(212,168,68,0.25);color:var(--draw);border:1px solid rgba(212,168,68,0.4)}
-@keyframes toastIn{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.play-card.selected{opacity:1!important;transform:translateY(-10px) scale(1.08)}
 
 #match-over-overlay{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,20,0.92);backdrop-filter:blur(8px)}
 #match-over-overlay.show{display:flex}
@@ -147,7 +139,6 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
   .score-dots{gap:4px}
   .score-dot{width:10px;height:10px}
   #countdown-number{font-size:80px}
-  #result-toast{font-size:16px;padding:12px 28px}
 }
 </style>
 </head>
@@ -230,7 +221,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
     </div>
   </div>
 
-  <div id="result-toast"></div>
+
   <div id="match-over-overlay">
     <div class="result-icon" id="final-icon"></div>
     <div class="result-title" id="final-title"></div>
@@ -251,7 +242,7 @@ let myCard=null,myScore=0,oppScore=0,timerInterval=null,timeLeft=ROUND_TIME;
 const $=id=>document.getElementById(id);
 const menuScreen=$('menu-screen'),waitingScreen=$('waiting-screen'),gameScreen=$('game-screen');
 const countdownOverlay=$('countdown-overlay'),countdownNum=$('countdown-number'),countdownLabel=$('countdown-label');
-const matchOverlay=$('match-over-overlay'),resultToast=$('result-toast');
+const matchOverlay=$('match-over-overlay');
 const roundResultEl=$('round-result'),timerText=$('timer-text'),timerProgress=$('timer-progress');
 const cardHandEl=$('card-hand'),myCardDisplay=$('my-card-display'),oppCardDisplay=$('opp-card-display');
 const myCardStatus=$('my-card-status'),oppCardStatus=$('opp-card-status');
@@ -314,7 +305,6 @@ function handleMessage(msg){
       updateScores();resetCards();startTimer(msg.timeLeft);
       updateScoreBadge(msg.myScore,msg.oppScore);
       roundResultEl.className='round-result';roundResultEl.textContent='';
-      resultToast.className='';resultToast.classList.remove('show');
       break;
     case'opponent_played':
       oppCardStatus.textContent='已出牌 ✓';oppCardStatus.className='card-status played';
@@ -382,7 +372,7 @@ function updateScores(){
 }
 function updateScoreBadge(m,o){scoreMeBadge.textContent=m;scoreOppBadge.textContent=o}
 function highlightSelectedCard(c){playCards.forEach(cc=>{cc.classList.remove('selected');if(cc.classList.contains(c))cc.classList.add('selected')})}
-function showRoundResult(r){roundResultEl.textContent=RESULT_TEXT[r];roundResultEl.className='round-result '+r+' show';resultToast.textContent=RESULT_TEXT[r];resultToast.className=r+' show';setTimeout(()=>resultToast.classList.remove('show'),2500)}
+function showRoundResult(r){roundResultEl.textContent=RESULT_TEXT[r];roundResultEl.className='round-result '+r+' show'}
 function showMatchOver(w){
   matchOverlay.className='show '+(w?'win':'lose');
   finalIcon.textContent=w?'🏆':'💔';finalTitle.textContent=w?'恭喜获胜!':'惜败';
@@ -420,7 +410,6 @@ function resetGame(){
   myScore=0;oppScore=0;myCard=null;gameState='idle';stopTimer();
   cardHandEl.classList.remove('played');playCards.forEach(c=>{c.classList.remove('selected');c.style.transform=''});
   updateScores();scoreMeBadge.textContent='0';scoreOppBadge.textContent='0';
-  resultToast.className='';resultToast.classList.remove('show');
   roundResultEl.className='round-result';roundResultEl.textContent='';
   matchOverlay.classList.remove('show');
   $('room-created').style.display='none';
