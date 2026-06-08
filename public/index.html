@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>石头剪刀布 · 卡牌对战</title>
+<style>
+/* ==================== 全局 ==================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b0b1a;
+  --bg2: #13132b;
+  --card-rock: #9b6b1c;
+  --card-rock-glow: #f0a030;
+  --card-paper: #d4c8a8;
+  --card-paper-glow: #ffe9b0;
+  --card-scissors: #4a7c9b;
+  --card-scissors-glow: #6ab8e0;
+  --accent: #ffd54f;
+  --win: #4caf84;
+  --lose: #e05555;
+  --draw: #d4a844;
+  --text: #e8e6f0;
+  --text-dim: #8888a8;
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 0%, #1a1a3e 0%, var(--bg) 70%);
+}
+
+#app {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative;
+}
+
+/* ==================== 公共 ==================== */
+.screen {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  padding: 20px;
+}
+.screen.active { display: flex; }
+
+.btn {
+  padding: 14px 48px; border: none; border-radius: 50px;
+  font-size: 17px; font-weight: 700; cursor: pointer;
+  transition: all 0.25s; letter-spacing: 1px;
+  position: relative; overflow: hidden;
+}
+.btn:active { transform: scale(0.95); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #ffd54f, #f0a030);
+  color: #1a1a2e; box-shadow: 0 4px 24px rgba(240,160,48,0.35);
+}
+.btn-primary:hover { box-shadow: 0 6px 32px rgba(240,160,48,0.5); transform: translateY(-2px); }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-dim); border: 1px solid rgba(255,255,255,0.12);
+}
+.btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+.btn-play-again {
+  padding: 16px 56px; font-size: 18px;
+  background: linear-gradient(135deg, #6a5acd, #836fff);
+  color: #fff; box-shadow: 0 4px 24px rgba(106,90,205,0.4);
+}
+.btn-play-again:hover { box-shadow: 0 6px 36px rgba(106,90,205,0.55); transform: translateY(-2px); }
+
+/* ==================== 连接界面 ==================== */
+#connect-screen h1 {
+  font-size: 42px; font-weight: 800;
+  background: linear-gradient(135deg, #ffd54f, #f0a030, #ff8c00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px; text-align: center; line-height: 1.2;
+}
+#connect-screen .subtitle {
+  font-size: 15px; color: var(--text-dim); margin-bottom: 48px;
+  letter-spacing: 2px;
+}
+#connect-screen .status-text {
+  font-size: 13px; color: var(--text-dim); margin-top: 16px;
+}
+
+/* ==================== 等待匹配界面 ==================== */
+#waiting-screen h2 {
+  font-size: 22px; margin-bottom: 32px; font-weight: 600;
+}
+.spinner-dots {
+  display: flex; gap: 10px; margin-bottom: 40px;
+}
+.spinner-dots span {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+  animation: dotBounce 1.4s ease-in-out infinite both;
+}
+.spinner-dots span:nth-child(2) { animation-delay: 0.16s; }
+.spinner-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ==================== 游戏界面 ==================== */
+#game-screen { justify-content: space-between; padding: 0; }
+
+/* ---- 顶部栏 ---- */
+.game-topbar {
+  width: 100%; padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.game-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px;
+}
+.game-info {
+  display: flex; align-items: center; gap: 20px;
+}
+.round-badge {
+  background: rgba(255,255,255,0.06);
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 14px; font-weight: 600; color: var(--text-dim);
+}
+.round-badge b { color: var(--text); }
+
+/* 圆形计时器 */
+.timer-circle {
+  position: relative; width: 52px; height: 52px;
+}
+.timer-circle svg { transform: rotate(-90deg); }
+.timer-circle .bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 4; }
+.timer-circle .progress {
+  fill: none; stroke: var(--accent); stroke-width: 4;
+  stroke-linecap: round; transition: stroke-dashoffset 1s linear;
+}
+.timer-circle .progress.urgent { stroke: var(--lose); }
+.timer-circle .timer-text {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.timer-circle .timer-text.urgent { color: var(--lose); }
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ---- 对战区域 ---- */
+.game-arena {
+  flex: 1; width: 100%; max-width: 900px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; padding: 10px 20px;
+}
+
+/* 玩家面板 */
+.player-panel {
+  flex: 1; max-width: 280px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.player-name {
+  font-size: 18px; font-weight: 700; color: var(--text);
+}
+.player-name .you { color: #4ecdc4; }
+.player-name .opp { color: #ff6b6b; }
+
+.score-dots {
+  display: flex; gap: 6px;
+}
+.score-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  transition: all 0.3s;
+}
+.score-dot.won { background: var(--win); box-shadow: 0 0 10px rgba(76,175,132,0.5); }
+.score-dot.lost { background: rgba(255,255,255,0.06); }
+
+/* 卡牌展示区 */
+.card-display {
+  width: 120px; height: 168px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; transition: all 0.4s;
+  position: relative; perspective: 800px;
+}
+.card-display.placeholder {
+  background: rgba(255,255,255,0.03);
+  border: 2px dashed rgba(255,255,255,0.1);
+  font-size: 13px; color: var(--text-dim);
+}
+.card-display .card-icon { font-size: 48px; }
+.card-display .card-label { font-size: 13px; font-weight: 600; }
+.card-display.rock  { background: linear-gradient(145deg, #5a3e14, #3d2a0c); border: 2px solid var(--card-rock-glow); }
+.card-display.paper { background: linear-gradient(145deg, #8a8070, #5a5244); border: 2px solid var(--card-paper-glow); }
+.card-display.scissors { background: linear-gradient(145deg, #2a4a60, #1a3040); border: 2px solid var(--card-scissors-glow); }
+.card-display.timeout { background: rgba(180,40,40,0.2); border: 2px solid var(--lose); }
+
+/* 对手卡牌隐藏时的翻转动画 */
+.card-display.hidden {
+  background: linear-gradient(145deg, #2a2040, #1a1030);
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.card-display.hidden .card-icon,
+.card-display.hidden .card-label { opacity: 0.3; }
+
+/* 出牌提示 */
+.card-status {
+  font-size: 12px; color: var(--text-dim); margin-top: 4px;
+}
+.card-status.played { color: var(--accent); }
+
+/* VS 区域 */
+.vs-zone {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  min-width: 100px;
+}
+.vs-text {
+  font-size: 28px; font-weight: 800;
+  background: linear-gradient(135deg, #ffd54f, #ff8c00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.round-result {
+  font-size: 20px; font-weight: 700; padding: 8px 20px;
+  border-radius: 20px; display: none;
+}
+.round-result.show { display: block; animation: resultPop 0.4s ease-out; }
+.round-result.win  { color: var(--win);  background: rgba(76,175,132,0.12); }
+.round-result.lose { color: var(--lose); background: rgba(224,85,85,0.12); }
+.round-result.draw { color: var(--draw); background: rgba(212,168,68,0.12); }
+
+@keyframes resultPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- 卡牌手牌区 ---- */
+.card-hand {
+  width: 100%; padding: 12px 20px 24px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; flex-shrink: 0;
+  position: relative;
+}
+
+.play-card {
+  width: 110px; height: 150px; border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px;
+  cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  color: #fff; font-weight: 600;
+  border: 2px solid transparent;
+}
+.play-card::after {
+  content: ''; position: absolute; inset: -1px; border-radius: 16px;
+  opacity: 0; transition: opacity 0.25s;
+  pointer-events: none;
+}
+.play-card:hover { transform: translateY(-12px); }
+.play-card:hover::after { opacity: 1; }
+
+.play-card.rock {
+  background: linear-gradient(160deg, #6b4c1e, #3d2a0c);
+  border-color: var(--card-rock-glow);
+  box-shadow: 0 6px 28px rgba(155,107,28,0.3);
+}
+.play-card.rock:hover { box-shadow: 0 10px 40px rgba(240,160,48,0.45); }
+.play-card.rock::after { box-shadow: 0 0 30px rgba(240,160,48,0.5); }
+
+.play-card.paper {
+  background: linear-gradient(160deg, #9a9078, #5a5244);
+  border-color: var(--card-paper-glow);
+  box-shadow: 0 6px 28px rgba(200,180,140,0.25);
+}
+.play-card.paper:hover { box-shadow: 0 10px 40px rgba(255,233,176,0.4); }
+.play-card.paper::after { box-shadow: 0 0 30px rgba(255,233,176,0.5); }
+
+.play-card.scissors {
+  background: linear-gradient(160deg, #3a5c78, #1a3040);
+  border-color: var(--card-scissors-glow);
+  box-shadow: 0 6px 28px rgba(74,124,155,0.25);
+}
+.play-card.scissors:hover { box-shadow: 0 10px 40px rgba(106,184,224,0.4); }
+.play-card.scissors::after { box-shadow: 0 0 30px rgba(106,184,224,0.5); }
+
+.play-card .card-icon { font-size: 42px; }
+.play-card .card-label { font-size: 14px; letter-spacing: 2px; }
+
+/* 已出牌状态 */
+.card-hand.played .play-card {
+  opacity: 0.4; cursor: not-allowed; transform: none;
+  pointer-events: none;
+}
+.card-hand.played .play-card:hover { transform: none; box-shadow: none; }
+
+/* 选中的卡牌：弹跳动画 */
+.play-card.selected {
+  animation: cardSelect 0.5s ease-out forwards;
+  opacity: 1 !important;
+}
+@keyframes cardSelect {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-20px) scale(1.05); }
+  100% { transform: translateY(-10px) scale(1); }
+}
+
+.card-hand-hint {
+  position: absolute; bottom: 0; font-size: 13px;
+  color: var(--text-dim); letter-spacing: 1px;
+}
+
+/* ==================== 结果提示 ==================== */
+#result-toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  padding: 14px 32px; border-radius: 30px;
+  font-size: 18px; font-weight: 700; z-index: 100;
+  pointer-events: none; display: none;
+  animation: toastIn 0.4s ease-out;
+}
+#result-toast.show { display: block; }
+#result-toast.win  { background: rgba(76,175,132,0.2); color: var(--win);  border: 1px solid rgba(76,175,132,0.3); }
+#result-toast.lose { background: rgba(224,85,85,0.2);  color: var(--lose); border: 1px solid rgba(224,85,85,0.3); }
+#result-toast.draw { background: rgba(212,168,68,0.2); color: var(--draw); border: 1px solid rgba(212,168,68,0.3); }
+
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ==================== 比赛结束遮罩 ==================== */
+#match-over-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(5,5,20,0.92);
+  backdrop-filter: blur(8px);
+}
+#match-over-overlay.show { display: flex; }
+
+#match-over-overlay .result-icon { font-size: 80px; margin-bottom: 16px; }
+#match-over-overlay .result-title {
+  font-size: 32px; font-weight: 800; margin-bottom: 8px;
+}
+#match-over-overlay .result-score {
+  font-size: 18px; color: var(--text-dim); margin-bottom: 36px;
+}
+#match-over-overlay.win  .result-title { color: var(--win); }
+#match-over-overlay.lose .result-title { color: var(--lose); }
+
+/* 胜利粒子效果 */
+.confetti { position: fixed; pointer-events: none; z-index: 300; }
+.confetti-piece {
+  position: absolute; width: 10px; height: 10px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 640px) {
+  #connect-screen h1 { font-size: 28px; }
+  .game-arena { gap: 8px; padding: 8px; }
+  .player-panel { max-width: 120px; }
+  .card-display { width: 90px; height: 130px; }
+  .card-display .card-icon { font-size: 36px; }
+  .play-card { width: 90px; height: 130px; }
+  .play-card .card-icon { font-size: 34px; }
+  .card-hand { gap: 12px; padding: 10px; }
+  .vs-text { font-size: 22px; }
+  .player-name { font-size: 14px; }
+  .score-dots { gap: 4px; }
+  .score-dot { width: 10px; height: 10px; }
+  .round-result { font-size: 16px; }
+  .game-title { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===== 连接界面 ===== -->
+  <div id="connect-screen" class="screen active">
+    <h1>石头剪刀布</h1>
+    <div class="subtitle">卡 牌 对 战</div>
+    <button class="btn btn-primary" onclick="findMatch()">⚔ 匹配对战</button>
+    <div class="status-text" id="conn-status"></div>
+  </div>
+
+  <!-- ===== 等待匹配界面 ===== -->
+  <div id="waiting-screen" class="screen">
+    <h2>正在寻找对手...</h2>
+    <div class="spinner-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <button class="btn btn-secondary" onclick="cancelMatch()">取消匹配</button>
+  </div>
+
+  <!-- ===== 游戏界面 ===== -->
+  <div id="game-screen" class="screen">
+    <!-- 顶栏 -->
+    <div class="game-topbar">
+      <div class="game-title">⚔ 石头剪刀布</div>
+      <div class="game-info">
+        <div class="round-badge">第 <b id="round-num">1</b> / 5 局</div>
+        <div class="timer-circle">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle class="bg" cx="26" cy="26" r="22"/>
+            <circle class="progress" id="timer-progress" cx="26" cy="26" r="22"
+              stroke-dasharray="138.2" stroke-dashoffset="0"/>
+          </svg>
+          <span class="timer-text" id="timer-text">30</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 对战面板 -->
+    <div class="game-arena">
+      <!-- 你 -->
+      <div class="player-panel">
+        <div class="player-name"><span class="you">●</span> 你</div>
+        <div class="score-dots" id="my-score-dots"></div>
+        <div class="card-display placeholder" id="my-card-display">
+          <span>请出牌</span>
+        </div>
+        <div class="card-status" id="my-card-status"></div>
+      </div>
+
+      <!-- VS -->
+      <div class="vs-zone">
+        <div class="vs-text">VS</div>
+        <div class="round-result" id="round-result"></div>
+      </div>
+
+      <!-- 对手 -->
+      <div class="player-panel">
+        <div class="player-name"><span class="opp">●</span> 对手</div>
+        <div class="score-dots" id="opp-score-dots"></div>
+        <div class="card-display placeholder" id="opp-card-display">
+          <span>等待中</span>
+        </div>
+        <div class="card-status" id="opp-card-status"></div>
+      </div>
+    </div>
+
+    <!-- 卡牌手牌 -->
+    <div class="card-hand" id="card-hand">
+      <div class="play-card rock" onclick="playCard('rock')">
+        <div class="card-icon">🪨</div>
+        <div class="card-label">石头</div>
+      </div>
+      <div class="play-card paper" onclick="playCard('paper')">
+        <div class="card-icon">📄</div>
+        <div class="card-label">布</div>
+      </div>
+      <div class="play-card scissors" onclick="playCard('scissors')">
+        <div class="card-icon">✂️</div>
+        <div class="card-label">剪刀</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 局结果 Toast ===== -->
+  <div id="result-toast"></div>
+
+  <!-- ===== 比赛结束遮罩 ===== -->
+  <div id="match-over-overlay">
+    <div class="result-icon" id="final-icon"></div>
+    <div class="result-title" id="final-title"></div>
+    <div class="result-score" id="final-score"></div>
+    <button class="btn btn-play-again" onclick="restartMatch()">🔄 再来一局</button>
+  </div>
+</div>
+
+<script>
+// ==================== 常量 ====================
+const WIN_SCORE = 5;
+const ROUND_TIME = 30;
+const CARD_EMOJI = { rock: '🪨', paper: '📄', scissors: '✂️', timeout: '⏰' };
+const CARD_NAME = { rock: '石头', paper: '布', scissors: '✂️', timeout: '超时' };
+const RESULT_TEXT = { win: '你赢了!', lose: '你输了', draw: '平局' };
+
+// ==================== 状态 ====================
+let ws = null;
+let connected = false;
+let gameState = 'idle'; // idle | waiting | playing | round_result | match_over
+let myCard = null;
+let roundResult = null;
+let timerInterval = null;
+let timeLeft = ROUND_TIME;
+let myScore = 0, oppScore = 0;
+
+// ==================== DOM 引用 ====================
+const $ = (id) => document.getElementById(id);
+const connectScreen  = $('connect-screen');
+const waitingScreen  = $('waiting-screen');
+const gameScreen     = $('game-screen');
+const matchOverlay   = $('match-over-overlay');
+const resultToast    = $('result-toast');
+const roundResultEl  = $('round-result');
+const timerText      = $('timer-text');
+const timerProgress  = $('timer-progress');
+const cardHand       = $('card-hand');
+const myCardDisplay  = $('my-card-display');
+const oppCardDisplay = $('opp-card-display');
+const myCardStatus   = $('my-card-status');
+const oppCardStatus  = $('opp-card-status');
+const myScoreDots    = $('my-score-dots');
+const oppScoreDots   = $('opp-score-dots');
+const roundNum       = $('round-num');
+const connStatus     = $('conn-status');
+const finalIcon      = $('final-icon');
+const finalTitle     = $('final-title');
+const finalScore     = $('final-score');
+const playCards      = document.querySelectorAll('.play-card');
+
+// ==================== WebSocket ====================
+function connect() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${location.host}`;
+
+  connStatus.textContent = '正在连接服务器...';
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    connected = true;
+    connStatus.textContent = '✅ 已连接 · 等待对手加入';
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleMessage(msg);
+  };
+
+  ws.onclose = () => {
+    connected = false;
+    if (gameState === 'playing' || gameState === 'round_result') {
+      alert('连接断开，请刷新页面重试');
+    }
+    showScreen('connect');
+    connStatus.textContent = '❌ 连接断开，请刷新页面';
+  };
+
+  ws.onerror = () => {
+    connStatus.textContent = '❌ 连接失败，请检查服务器';
+  };
+}
+
+function send(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(msg));
+  }
+}
+
+// ==================== 消息处理 ====================
+function handleMessage(msg) {
+  switch (msg.type) {
+
+    case 'waiting':
+      gameState = 'waiting';
+      showScreen('waiting');
+      break;
+
+    case 'round_start':
+      gameState = 'playing';
+      myCard = null;
+      roundResult = null;
+      timeLeft = msg.timeLeft;
+      myScore = msg.myScore;
+      oppScore = msg.oppScore;
+
+      roundNum.textContent = msg.round;
+      updateScores();
+      resetCards();
+      showScreen('game');
+      startTimer(msg.timeLeft);
+
+      // 显示当前比分提示
+      roundResultEl.className = 'round-result';
+      roundResultEl.textContent = '';
+      resultToast.className = '';
+      resultToast.classList.remove('show');
+
+      // 更新顶栏局数标题
+      document.querySelector('.round-badge').innerHTML =
+        `第 <b>${msg.round}</b> / 5 局`;
+      break;
+
+    case 'opponent_played':
+      oppCardStatus.textContent = '已出牌 ✓';
+      oppCardStatus.className = 'card-status played';
+      // 对手已出牌但保持隐藏
+      oppCardDisplay.className = 'card-display hidden';
+      oppCardDisplay.innerHTML = '<span style="font-size:36px">❓</span><div class="card-label">已准备</div>';
+      break;
+
+    case 'card_played':
+      myCard = msg.card;
+      myCardStatus.textContent = '已出牌 ✓';
+      myCardStatus.className = 'card-status played';
+      // 标记手牌
+      cardHand.classList.add('played');
+      highlightSelectedCard(msg.card);
+      // 展示我的出牌
+      myCardDisplay.className = `card-display ${msg.card}`;
+      myCardDisplay.innerHTML = `<div class="card-icon">${CARD_EMOJI[msg.card]}</div><div class="card-label">${CARD_NAME[msg.card]}</div>`;
+      break;
+
+    case 'round_result':
+      gameState = 'round_result';
+      myScore = msg.myScore;
+      oppScore = msg.oppScore;
+      roundResult = msg.result;
+      stopTimer();
+
+      // 显示对手的牌
+      oppCardDisplay.className = `card-display ${msg.oppCard}`;
+      oppCardDisplay.innerHTML = `<div class="card-icon">${CARD_EMOJI[msg.oppCard]}</div><div class="card-label">${CARD_NAME[msg.oppCard]}</div>`;
+      oppCardStatus.textContent = '';
+      oppCardStatus.className = 'card-status';
+
+      // 如果自己还没出牌(超时)，显示我的卡牌
+      if (!myCard) {
+        myCardDisplay.className = `card-display ${msg.myCard}`;
+        myCardDisplay.innerHTML = `<div class="card-icon">${CARD_EMOJI[msg.myCard]}</div><div class="card-label">${CARD_NAME[msg.myCard]}</div>`;
+      }
+      myCardStatus.textContent = '';
+      myCardStatus.className = 'card-status';
+
+      updateScores();
+
+      // 显示局结果
+      showRoundResult(msg.result);
+
+      if (!msg.matchOver) {
+        // 准备下一局提示（倒计时由服务器控制）
+        setTimeout(() => {
+          cardHand.classList.remove('played');
+          playCards.forEach(c => c.classList.remove('selected'));
+        }, 500);
+      }
+      break;
+
+    case 'match_over':
+      gameState = 'match_over';
+      stopTimer();
+      myScore = msg.myScore;
+      oppScore = msg.oppScore;
+      updateScores();
+
+      const iWon = (msg.winner === 0 && myScore > oppScore) ||
+                   (msg.winner === 1 && oppScore > myScore);
+      // 简单判断：用分数
+      const iReallyWon = myScore > oppScore;
+
+      showMatchOver(iReallyWon);
+      break;
+
+    case 'opponent_disconnected':
+      alert('对手断开了连接');
+      resetGame();
+      showScreen('connect');
+      break;
+
+    case 'match_cancelled':
+      gameState = 'idle';
+      showScreen('connect');
+      break;
+
+    case 'pong':
+      // 心跳响应，无需处理
+      break;
+  }
+}
+
+// ==================== UI 控制 ====================
+function showScreen(name) {
+  [connectScreen, waitingScreen, gameScreen].forEach(s => s.classList.remove('active'));
+  matchOverlay.classList.remove('show');
+
+  if (name === 'connect') connectScreen.classList.add('active');
+  else if (name === 'waiting') waitingScreen.classList.add('active');
+  else if (name === 'game') gameScreen.classList.add('active');
+}
+
+function resetCards() {
+  myCardDisplay.className = 'card-display placeholder';
+  myCardDisplay.innerHTML = '<span>请出牌</span>';
+  oppCardDisplay.className = 'card-display placeholder';
+  oppCardDisplay.innerHTML = '<span>等待中</span>';
+  myCardStatus.textContent = '';
+  myCardStatus.className = 'card-status';
+  oppCardStatus.textContent = '';
+  oppCardStatus.className = 'card-status';
+  cardHand.classList.remove('played');
+  playCards.forEach(c => c.classList.remove('selected'));
+  roundResultEl.className = 'round-result';
+  roundResultEl.textContent = '';
+}
+
+function updateScores() {
+  // 我方分数
+  myScoreDots.innerHTML = '';
+  for (let i = 0; i < WIN_SCORE; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'score-dot' + (i < myScore ? ' won' : '');
+    myScoreDots.appendChild(dot);
+  }
+
+  // 对手分数
+  oppScoreDots.innerHTML = '';
+  for (let i = 0; i < WIN_SCORE; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'score-dot' + (i < oppScore ? ' won' : '');
+    oppScoreDots.appendChild(dot);
+  }
+}
+
+function highlightSelectedCard(card) {
+  playCards.forEach(c => {
+    c.classList.remove('selected');
+    if (c.classList.contains(card)) {
+      c.classList.add('selected');
+    }
+  });
+}
+
+function showRoundResult(result) {
+  roundResultEl.textContent = RESULT_TEXT[result];
+  roundResultEl.className = `round-result ${result} show`;
+
+  // Toast
+  resultToast.textContent = RESULT_TEXT[result];
+  resultToast.className = `${result}`;
+  resultToast.classList.add('show');
+  setTimeout(() => resultToast.classList.remove('show'), 2500);
+}
+
+function showMatchOver(won) {
+  matchOverlay.className = `show ${won ? 'win' : 'lose'}`;
+  finalIcon.textContent = won ? '🏆' : '💔';
+  finalTitle.textContent = won ? '恭喜获胜!' : '惜败';
+  finalScore.textContent = `最终比分 ${myScore} : ${oppScore}`;
+
+  if (won) spawnConfetti();
+}
+
+// ==================== 计时器 ====================
+function startTimer(total) {
+  stopTimer();
+  timeLeft = total;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) stopTimer();
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function updateTimerDisplay() {
+  const total = ROUND_TIME;
+  const pct = timeLeft / total;
+  const circumference = 138.2; // 2 * PI * 22
+  const offset = circumference * (1 - pct);
+
+  timerProgress.style.strokeDashoffset = offset;
+  timerText.textContent = timeLeft;
+
+  const isUrgent = timeLeft <= 10;
+  timerProgress.classList.toggle('urgent', isUrgent);
+  timerText.classList.toggle('urgent', isUrgent);
+
+  if (isUrgent) {
+    timerText.style.animation = 'timerPulse 0.6s ease-in-out infinite';
+  } else {
+    timerText.style.animation = '';
+  }
+}
+
+// ==================== 玩家操作 ====================
+function findMatch() {
+  if (!connected) connect();
+  send({ type: 'find_match' });
+  gameState = 'matching';
+}
+
+function cancelMatch() {
+  send({ type: 'cancel_match' });
+  showScreen('connect');
+}
+
+function playCard(card) {
+  if (gameState !== 'playing' || myCard) return;
+  send({ type: 'play', card });
+}
+
+function restartMatch() {
+  matchOverlay.classList.remove('show');
+  resetCards();
+  resetGame();
+  showScreen('connect');
+
+  // 自动重新匹配
+  setTimeout(() => findMatch(), 500);
+}
+
+function resetGame() {
+  myScore = 0;
+  oppScore = 0;
+  myCard = null;
+  roundResult = null;
+  gameState = 'idle';
+  stopTimer();
+  cardHand.classList.remove('played');
+  playCards.forEach(c => c.classList.remove('selected'));
+  updateScores();
+  roundNum.textContent = '1';
+  resultToast.className = '';
+  resultToast.classList.remove('show');
+  roundResultEl.className = 'round-result';
+  roundResultEl.textContent = '';
+  matchOverlay.classList.remove('show');
+  document.querySelector('.round-badge').innerHTML = '第 <b>1</b> / 5 局';
+}
+
+// ==================== 庆祝特效 ====================
+function spawnConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti';
+  document.body.appendChild(container);
+
+  const colors = ['#ffd54f','#ff6b6b','#4ecdc4','#836fff','#ff8c00',
+                  '#6ab8e0','#4caf84','#ff4081','#00e5ff','#ffea00'];
+
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.top = -(Math.random() * 50) + 'px';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (6 + Math.random() * 10) + 'px';
+    piece.style.height = (6 + Math.random() * 10) + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+    piece.style.animationDelay = Math.random() * 1.5 + 's';
+    container.appendChild(piece);
+  }
+
+  setTimeout(() => container.remove(), 5000);
+}
+
+// ==================== 心跳 ====================
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    send({ type: 'ping' });
+  }
+}, 30000);
+
+// ==================== 启动 ====================
+connect();
+</script>
+</body>
+</html>
