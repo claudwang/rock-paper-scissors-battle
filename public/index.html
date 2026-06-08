@@ -147,6 +147,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
   .score-dots{gap:4px}
   .score-dot{width:10px;height:10px}
   #countdown-number{font-size:80px}
+  #result-toast{top:14px;padding:8px 20px;font-size:14px}
 }
 </style>
 </head>
@@ -369,7 +370,7 @@ function resetCards(){
   oppCardDisplay.className='card-display placeholder';oppCardDisplay.innerHTML='<span>等待中</span>';
   myCardStatus.textContent='';myCardStatus.className='card-status';
   oppCardStatus.textContent='';oppCardStatus.className='card-status';
-  cardHandEl.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
+  cardHandEl.classList.remove('played');playCards.forEach(c=>{c.classList.remove('selected');c.style.transform=''});
   roundResultEl.className='round-result';roundResultEl.textContent='';
 }
 function updateScores(){
@@ -417,7 +418,7 @@ function restartMatch(){
 }
 function resetGame(){
   myScore=0;oppScore=0;myCard=null;gameState='idle';stopTimer();
-  cardHandEl.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
+  cardHandEl.classList.remove('played');playCards.forEach(c=>{c.classList.remove('selected');c.style.transform=''});
   updateScores();scoreMeBadge.textContent='0';scoreOppBadge.textContent='0';
   resultToast.className='';resultToast.classList.remove('show');
   roundResultEl.className='round-result';roundResultEl.textContent='';
