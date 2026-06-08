@@ -439,12 +439,16 @@ function joinRoom() {
   goMenu();
   roomCode = code;
   iAmHost = false;
-  $('waiting-title').textContent = '正在连接房间...';
+  $('waiting-title').textContent = '正在连接信令服务器...';
   $('waiting-room-code').style.display = 'none';
-  initPeer(null);
   showScreen('waiting');
+  initPeer(null);
 
-  connectToHost(code);
+  // 给 PeerJS 时间连接信令服务器，然后尝试连接主机
+  setTimeout(() => {
+    $('waiting-title').textContent = '正在连接房间 ' + code + '...';
+    connectToHost(code);
+  }, 1500);
 }
 
 function randomCode() {
@@ -457,14 +461,28 @@ function randomCode() {
 function initPeer(id) {
   cleanupPeer();
   const peerId = id ? ('rps-' + id) : undefined;
+
+  menuStatus.textContent = '正在连接服务器...';
+
   peer = new Peer(peerId, {
-    debug: 0
+    debug: 0,
+    host: '0.peerjs.com',
+    port: 443,
+    secure: true,
+    path: '/',
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
+    }
   });
 
   peer.on('open', (myId) => {
     console.log('Peer ready:', myId);
     if (iAmHost) {
-      menuStatus.textContent = '房间已创建，等待对手连接...';
+      menuStatus.textContent = '✅ 房间已创建，等待对手连接...';
     }
   });
 
@@ -473,31 +491,49 @@ function initPeer(id) {
     conn = incoming;
     setupConnection();
     console.log('Opponent connected');
+    menuStatus.textContent = '✅ 对手已连接!';
     startGame();
   });
 
   peer.on('error', (err) => {
     console.error('Peer error:', err);
     if (err.type === 'unavailable-id') {
-      // Already taken, retry
       roomCode = randomCode();
       const newId = 'rps-' + roomCode;
       peer.destroy();
-      peer = new Peer(newId, { debug: 0 });
+      peer = new Peer(newId, {
+        debug: 0,
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        path: '/',
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      });
       $('room-code-text').textContent = roomCode;
       $('waiting-code-text').textContent = roomCode;
       peer.on('open', () => {
-        menuStatus.textContent = '房间已创建';
+        menuStatus.textContent = '✅ 房间已创建';
       });
       peer.on('connection', handleIncomingConnection);
       peer.on('error', (e) => showError('创建房间失败: ' + e.message));
       return;
     }
-    showError('连接错误: ' + (err.message || err.type));
+    if (err.type === 'network' || err.type === 'server-error') {
+      showError('无法连接服务器，请检查网络后刷新重试');
+    } else {
+      showError('连接错误: ' + (err.message || err.type));
+    }
   });
 
   peer.on('disconnected', () => {
-    console.log('Peer disconnected, reconnecting...');
+    console.log('Peer disconnected from server, reconnecting...');
+    menuStatus.textContent = '连接断开，正在重连...';
     peer.reconnect();
   });
 }
@@ -511,25 +547,43 @@ function handleIncomingConnection(incoming) {
 
 function connectToHost(code) {
   const hostId = 'rps-' + code;
-  const c = peer.connect(hostId, { reliable: true });
 
-  let connected = false;
-  c.on('open', () => {
-    connected = true;
-    conn = c;
-    setupConnection();
-    console.log('Connected to host');
-  });
+  // 确保自己的 Peer 已准备好
+  function tryConnect() {
+    if (!peer || peer.disconnected) {
+      setTimeout(tryConnect, 500);
+      return;
+    }
+    if (peer.destroyed) {
+      showError('连接失败，请返回重试');
+      return;
+    }
 
-  c.on('error', (err) => {
-    console.error('Connection error:', err);
-    if (!connected) showError('无法连接房间，请检查房间号是否正确');
-  });
+    menuStatus.textContent = '正在连接房间 ' + code + '...';
+    const c = peer.connect(hostId, { reliable: true });
 
-  // Timeout
-  setTimeout(() => {
-    if (!connected) showError('连接超时，请确认房间号正确且对手已创建房间');
-  }, 8000);
+    let connected = false;
+    c.on('open', () => {
+      connected = true;
+      conn = c;
+      setupConnection();
+      console.log('Connected to host');
+      menuStatus.textContent = '✅ 已连接!';
+    });
+
+    c.on('error', (err) => {
+      console.error('Connection error:', err);
+      if (!connected) showError('连接失败，请确认房间号正确且对手已建好房间');
+    });
+
+    // 20 秒超时
+    setTimeout(() => {
+      if (!connected) showError('连接超时（20秒），请确认:\n1. 房间号输入正确\n2. 对手已点击"创建房间"\n3. 双方网络正常');
+    }, 20000);
+  }
+
+  // 等 1 秒确保 Peer 初始化完成
+  setTimeout(tryConnect, 1000);
 }
 
 function setupConnection() {
