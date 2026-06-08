@@ -154,8 +154,8 @@ class Room {
       oppScore: this.scores[1 - side],
     }));
 
-    // 30 秒倒计时
-    this.timer = setTimeout(() => this.handleTimeout(), ROUND_TIME * 1000);
+    // 30 秒倒计时（+2s 缓冲，避免网络延迟导致服务器先判定而客户端倒计时未到0）
+    this.timer = setTimeout(() => this.handleTimeout(), (ROUND_TIME + 2) * 1000);
   }
 
   // 处理超时（有人没出牌）

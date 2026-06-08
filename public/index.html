@@ -74,11 +74,11 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 .round-badge{background:rgba(255,255,255,0.06);padding:5px 14px;border-radius:20px;font-size:14px;font-weight:600;color:var(--text-dim)}
 .round-badge b{color:var(--text)}
 .timer-circle{position:relative;width:48px;height:48px}
-.timer-circle svg{transform:rotate(-90deg)}
+.timer-circle svg{width:100%;height:100%;transform:rotate(-90deg)}
 .timer-circle .bg{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:4}
 .timer-circle .progress{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
 .timer-circle .progress.urgent{stroke:var(--lose)}
-.timer-circle .timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.timer-circle .timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;line-height:1}
 .timer-circle .timer-text.urgent{color:var(--lose);animation:timerPulse 0.6s ease-in-out infinite}
 @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 
@@ -241,7 +241,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
       <div class="game-info">
         <div class="round-badge">你 <b id="score-me">0</b> : <b id="score-opp">0</b> 对手</div>
         <div class="timer-circle">
-          <svg width="48" height="48" viewBox="0 0 48 48">
+          <svg viewBox="0 0 48 48">
             <circle class="bg" cx="24" cy="24" r="20"/>
             <circle class="progress" id="timer-progress" cx="24" cy="24" r="20" stroke-dasharray="125.66" stroke-dashoffset="0"/>
           </svg>
