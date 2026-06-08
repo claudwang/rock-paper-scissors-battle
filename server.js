@@ -3,7 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const ROUND_TIME = 30;       // 每局倒计时秒数
 const WIN_SCORE = 5;         // 先赢5局获胜
 const RESULT_DELAY = 4;      // 每局结束后展示结果的秒数
@@ -22,6 +22,14 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+
+  // 健康检查
+  if (urlPath === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', rooms: rooms.size, waiting: waitingQueue.length }));
+    return;
+  }
+
   if (urlPath === '/') urlPath = '/index.html';
 
   const filePath = path.join(__dirname, 'public', urlPath);
@@ -260,6 +268,7 @@ wss.on('connection', (ws) => {
 
     console.log(`[消息] type=${msg.type}`);
 
+    try {
     switch (msg.type) {
 
       // 寻找对战
@@ -308,6 +317,9 @@ wss.on('connection', (ws) => {
         break;
       }
     }
+    } catch (e) {
+      console.error('[消息处理错误]', e.message, e.stack);
+    }
   });
 
   ws.on('close', () => {
@@ -336,6 +348,28 @@ function safeSend(ws, data) {
     ws.send(JSON.stringify(data));
   }
 }
+
+// ==================== 全局错误处理 ====================
+server.on('error', (err) => {
+  console.error('[服务器错误]', err.message);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`端口 ${PORT} 已被占用，请使用 PORT=XXXX 指定其他端口`);
+    process.exit(1);
+  }
+});
+
+wss.on('error', (err) => {
+  console.error('[WebSocket 服务器错误]', err.message);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[未捕获异常]', err.message, err.stack);
+  // 不要退出，让服务器继续运行
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[未处理的 Promise 拒绝]', reason);
+});
 
 // ==================== 启动 ====================
 server.listen(PORT, '0.0.0.0', () => {

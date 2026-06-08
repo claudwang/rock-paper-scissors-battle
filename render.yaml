@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rock-paper-scissors-battle
+    runtime: node
+    repo: https://github.com/claudwang/rock-paper-scissors-battle
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
