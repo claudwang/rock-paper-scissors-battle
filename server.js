@@ -4,10 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3002;
-const ROUND_TIME = 30;       // 每局倒计时秒数
-const WIN_SCORE = 5;         // 先赢5局获胜
-const RESULT_DELAY = 4;      // 每局结束后展示结果的秒数
-const MATCH_OVER_DELAY = 6;  // 比赛结束后展示结果的秒数
+const ROUND_TIME = 30;
+const WIN_SCORE = 5;
+const RESULT_DELAY = 4;
+const MATCH_OVER_DELAY = 6;
+const COUNTDOWN_SECS = 3;
 
 // ==================== HTTP 静态文件服务 ====================
 const MIME_TYPES = {
@@ -26,7 +27,7 @@ const server = http.createServer((req, res) => {
   // 健康检查
   if (urlPath === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', rooms: rooms.size, waiting: waitingQueue.length }));
+    res.end(JSON.stringify({ status: 'ok', activeRooms: rooms.size, pendingRooms: pendingRooms.size }));
     return;
   }
 
@@ -53,36 +54,73 @@ const wss = new WebSocket.Server({ server });
 const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
 
 // 游戏状态
-const waitingQueue = [];          // 等待匹配的玩家队列
-const rooms = new Map();          // 活跃房间 Map<roomId, Room>
-let roomIdCounter = 0;
+const pendingRooms = new Map();  // 等待对手的房间 Map<code, Room>
+const rooms = new Map();         // 活跃房间 Map<code, Room>
+
+function randomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 
 // ---- 房间类 ----
 class Room {
-  constructor(id, p1, p2) {
-    this.id = id;
-    this.players = [p1, p2];
+  constructor(code, p1) {
+    this.code = code;
+    this.players = [p1, null];
     this.scores = [0, 0];
     this.currentRound = 0;
-    this.choices = [null, null];   // 本局双方出牌
-    this.timer = null;             // 本局倒计时 timeout
-    this.resultTimer = null;       // 结果展示 timeout
-    this.active = false;           // 本局是否正在进行
-    this.matchOver = false;        // 比赛是否结束
+    this.choices = [null, null];
+    this.timer = null;
+    this.resultTimer = null;
+    this.countdownTimer = null;
+    this.active = false;
+    this.matchOver = false;
+    this.started = false;     // 比赛是否已开始
 
     p1.room = this;
     p1.side = 0;
+
+    pendingRooms.set(code, this);
+    console.log(`[Room ${code}] 创建房间 (等待对手)`);
+  }
+
+  // 第二人加入
+  addPlayer(p2) {
+    this.players[1] = p2;
     p2.room = this;
     p2.side = 1;
+    pendingRooms.delete(this.code);
+    rooms.set(this.code, this);
+    console.log(`[Room ${this.code}] 对手加入，开始倒计时`);
+    this.startCountdown();
+  }
 
-    rooms.set(id, this);
-    console.log(`[Room ${id}] 创建房间`);
+  // 3 秒开局倒计时
+  startCountdown() {
+    let count = COUNTDOWN_SECS;
+    this.sendBoth(() => ({ type: 'game_countdown', seconds: count }));
+    this.countdownTimer = setInterval(() => {
+      count--;
+      if (count >= 0) {
+        this.sendBoth(() => ({ type: 'game_countdown', seconds: count }));
+      }
+      if (count < 0) {
+        clearInterval(this.countdownTimer);
+        this.started = true;
+        this.startRound();
+      }
+    }, 1000);
   }
 
   // 获取对手
   opponentOf(ws) {
     return this.players[1 - ws.side];
   }
+
+  // 房间是否满员
+  isFull() { return this.players[0] && this.players[1]; }
 
   // 广播给房间内所有人（从各自视角）
   sendBoth(msgFn) {
@@ -106,7 +144,7 @@ class Room {
     this.choices = [null, null];
     this.active = true;
 
-    console.log(`[Room ${this.id}] 第 ${this.currentRound} 局开始`);
+    console.log(`[Room ${this.code}] 第 ${this.currentRound} 局开始`);
 
     this.sendBoth((side) => ({
       type: 'round_start',
@@ -123,7 +161,7 @@ class Room {
   // 处理超时（有人没出牌）
   handleTimeout() {
     if (!this.active) return;
-    console.log(`[Room ${this.id}] 第 ${this.currentRound} 局超时`);
+    console.log(`[Room ${this.code}] 第 ${this.currentRound} 局超时`);
 
     const c0 = this.choices[0];
     const c1 = this.choices[1];
@@ -156,7 +194,7 @@ class Room {
     if (this.choices[side] !== null) return; // 已经出过了
 
     this.choices[side] = card;
-    console.log(`[Room ${this.id}] P${side + 1} 出牌: ${card}`);
+    console.log(`[Room ${this.code}] P${side + 1} 出牌: ${card}`);
 
     // 告诉对手"已出牌"但不透露内容
     this.sendTo(this.opponentOf(ws), { type: 'opponent_played' });
@@ -187,7 +225,7 @@ class Room {
 
     const matchOver = this.scores[0] >= WIN_SCORE || this.scores[1] >= WIN_SCORE;
 
-    console.log(`[Room ${this.id}] 第 ${this.currentRound} 局结果: P1=${c1} P2=${c2} winner=${winnerSide} scores=[${this.scores}]`);
+    console.log(`[Room ${this.code}] 第 ${this.currentRound} 局结果: P1=${c1} P2=${c2} winner=${winnerSide} scores=[${this.scores}]`);
 
     this.sendBoth((side) => {
       const myCard = side === 0 ? c1 : c2;
@@ -231,11 +269,12 @@ class Room {
   handleDisconnect(ws) {
     clearTimeout(this.timer);
     clearTimeout(this.resultTimer);
+    clearInterval(this.countdownTimer);
 
     const opp = this.opponentOf(ws);
-    this.sendTo(opp, { type: 'opponent_disconnected' });
+    if (opp) this.sendTo(opp, { type: 'opponent_disconnected' });
 
-    console.log(`[Room ${this.id}] P${ws.side + 1} 断线`);
+    console.log(`[Room ${this.code}] P${ws.side + 1} 断线`);
     this.destroy();
   }
 
@@ -243,12 +282,13 @@ class Room {
   destroy() {
     clearTimeout(this.timer);
     clearTimeout(this.resultTimer);
+    clearInterval(this.countdownTimer);
     this.players.forEach((p) => {
-      p.room = null;
-      p.side = null;
+      if (p) { p.room = null; p.side = null; }
     });
-    rooms.delete(this.id);
-    console.log(`[Room ${this.id}] 房间销毁`);
+    pendingRooms.delete(this.code);
+    rooms.delete(this.code);
+    console.log(`[Room ${this.code}] 房间销毁`);
   }
 }
 
@@ -271,42 +311,44 @@ wss.on('connection', (ws) => {
     try {
     switch (msg.type) {
 
-      // 寻找对战
-      case 'find_match': {
-        if (ws.room) return; // 已在房间中
+      // 创建房间
+      case 'create_room': {
+        if (ws.room) return;
+        let code;
+        do { code = randomCode(); } while (pendingRooms.has(code) || rooms.has(code));
+        new Room(code, ws);
+        safeSend(ws, { type: 'room_created', code });
+        console.log(`[房间] ${code} 由玩家创建`);
+        break;
+      }
 
-        // 从等待队列移除（如果已在其中）
-        const qi = waitingQueue.indexOf(ws);
-        if (qi !== -1) waitingQueue.splice(qi, 1);
-
-        if (waitingQueue.length > 0) {
-          const opp = waitingQueue.shift();
-          const room = new Room(++roomIdCounter, opp, ws);
-          console.log(`[匹配] Room ${room.id} 匹配成功`);
-          room.startRound();
-        } else {
-          waitingQueue.push(ws);
-          safeSend(ws, { type: 'waiting' });
-          console.log(`[匹配] 进入等待队列 (当前 ${waitingQueue.length} 人)`);
+      // 加入房间
+      case 'join_room': {
+        if (ws.room) return;
+        const code = (msg.code || '').toUpperCase();
+        const room = pendingRooms.get(code);
+        if (!room) {
+          safeSend(ws, { type: 'room_error', message: '房间不存在或已满员' });
+          break;
         }
+        room.addPlayer(ws);
+        // 通知房主对手已加入
+        safeSend(room.players[0], { type: 'opponent_joined' });
+        safeSend(ws, { type: 'room_joined', code });
         break;
       }
 
       // 出牌
       case 'play': {
-        if (ws.room) {
-          ws.room.playCard(ws, msg.card);
-        }
+        if (ws.room) ws.room.playCard(ws, msg.card);
         break;
       }
 
-      // 取消匹配
-      case 'cancel_match': {
-        const ci = waitingQueue.indexOf(ws);
-        if (ci !== -1) {
-          waitingQueue.splice(ci, 1);
-          safeSend(ws, { type: 'match_cancelled' });
-          console.log('[匹配] 玩家取消匹配');
+      // 离开房间（取消匹配）
+      case 'leave_room': {
+        if (ws.room && !ws.room.started) {
+          ws.room.destroy();
+          safeSend(ws, { type: 'room_left' });
         }
         break;
       }
@@ -325,14 +367,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log('[断开] 玩家离开');
 
-    // 从等待队列移除
-    const qi = waitingQueue.indexOf(ws);
-    if (qi !== -1) {
-      waitingQueue.splice(qi, 1);
-      return;
-    }
-
-    // 处理房间中断线
+    // 处理房间中断线（包括等待中房间和活跃房间）
     if (ws.room && !ws.room.matchOver) {
       ws.room.handleDisconnect(ws);
     }

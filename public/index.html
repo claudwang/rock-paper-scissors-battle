@@ -18,7 +18,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 #app{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
 .screen{display:none;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:20px}
 .screen.active{display:flex}
-.btn{padding:14px 48px;border:none;border-radius:50px;font-size:17px;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:1px}
+.btn{padding:14px 40px;border:none;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:1px}
 .btn:active{transform:scale(0.95)}
 .btn-primary{background:linear-gradient(135deg,#ffd54f,#f0a030);color:#1a1a2e;box-shadow:0 4px 24px rgba(240,160,48,0.35)}
 .btn-primary:hover{box-shadow:0 6px 32px rgba(240,160,48,0.5);transform:translateY(-2px)}
@@ -26,16 +26,41 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 .btn-secondary:hover{color:var(--text);border-color:rgba(255,255,255,0.25)}
 .btn-play-again{padding:16px 56px;font-size:18px;background:linear-gradient(135deg,#6a5acd,#836fff);color:#fff;box-shadow:0 4px 24px rgba(106,90,205,0.4)}
 .btn-play-again:hover{box-shadow:0 6px 36px rgba(106,90,205,0.55);transform:translateY(-2px)}
-#connect-screen h1{font-size:42px;font-weight:800;background:linear-gradient(135deg,#ffd54f,#f0a030,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;text-align:center;line-height:1.2}
-#connect-screen .subtitle{font-size:15px;color:var(--text-dim);margin-bottom:48px;letter-spacing:2px}
+
+/* 菜单 */
+#menu-screen h1{font-size:38px;font-weight:800;background:linear-gradient(135deg,#ffd54f,#f0a030,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;text-align:center;line-height:1.2}
+#menu-screen .subtitle{font-size:15px;color:var(--text-dim);margin-bottom:36px;letter-spacing:2px}
+.menu-buttons{display:flex;flex-direction:column;gap:14px;align-items:center}
+.divider{color:var(--text-dim);font-size:12px;margin:4px 0}
+.join-row{display:flex;gap:8px;align-items:center}
+.join-row input{width:140px;padding:12px 16px;border-radius:50px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--text);font-size:15px;text-align:center;outline:none;font-family:monospace;letter-spacing:2px}
+.join-row input:focus{border-color:var(--accent)}
+.join-row input::placeholder{color:var(--text-dim);letter-spacing:1px;font-family:sans-serif;font-size:13px}
+
+.room-code-display{background:rgba(255,255,255,0.06);border:1px dashed rgba(255,200,50,0.3);border-radius:12px;padding:16px 24px;margin:16px 0;text-align:center}
+.room-code-display .label{font-size:12px;color:var(--text-dim);margin-bottom:6px}
+.room-code-display .code{font-size:32px;font-weight:800;font-family:monospace;letter-spacing:4px;color:var(--accent)}
+
 .status-text{font-size:13px;color:var(--text-dim);margin-top:16px}
+
+/* 等待 */
 #waiting-screen h2{font-size:22px;margin-bottom:32px;font-weight:600}
-.spinner-dots{display:flex;gap:10px;margin-bottom:40px}
+.spinner-dots{display:flex;gap:10px;margin-bottom:16px}
 .spinner-dots span{width:12px;height:12px;border-radius:50%;background:var(--accent);animation:dotBounce 1.4s ease-in-out infinite both}
 .spinner-dots span:nth-child(2){animation-delay:0.16s}
 .spinner-dots span:nth-child(3){animation-delay:0.32s}
 @keyframes dotBounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
 
+/* 倒计时遮罩 */
+#countdown-overlay{position:fixed;inset:0;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,20,0.93)}
+#countdown-overlay.show{display:flex}
+#countdown-number{font-size:120px;font-weight:900;color:var(--accent);animation:countPop 0.5s ease-out}
+#countdown-label{font-size:22px;color:var(--text-dim);margin-top:8px}
+#countdown-overlay.go #countdown-number{color:var(--win);animation:countGo 0.6s ease-out}
+@keyframes countPop{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+@keyframes countGo{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
+
+/* 游戏界面 */
 .game-topbar{width:100%;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .game-title{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:1px}
 .game-info{display:flex;align-items:center;gap:20px}
@@ -109,7 +134,7 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
 #match-over-overlay.lose .result-title{color:var(--lose)}
 
 @media(max-width:640px){
-  #connect-screen h1{font-size:28px}
+  #menu-screen h1{font-size:28px}
   .game-arena{gap:8px;padding:8px}
   .player-panel{max-width:120px}
   .card-display{width:90px;height:130px}
@@ -121,24 +146,50 @@ body{background:radial-gradient(ellipse at 50% 0%,#1a1a3e 0%,var(--bg) 70%)}
   .player-name{font-size:14px}
   .score-dots{gap:4px}
   .score-dot{width:10px;height:10px}
+  #countdown-number{font-size:80px}
 }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="connect-screen" class="screen active">
+  <!-- 菜单 -->
+  <div id="menu-screen" class="screen active">
     <h1>石头剪刀布</h1>
     <div class="subtitle">卡 牌 对 战</div>
-    <button class="btn btn-primary" onclick="findMatch()">⚔ 匹配对战</button>
-    <div class="status-text" id="conn-status"></div>
+    <div class="menu-buttons">
+      <button class="btn btn-primary" onclick="createRoom()">⚔ 创建房间</button>
+      <div class="divider">— 或输入房间号加入 —</div>
+      <div class="join-row">
+        <input type="text" id="room-input" placeholder="房间号" maxlength="6" autocomplete="off">
+        <button class="btn btn-secondary" onclick="joinRoom()">加入</button>
+      </div>
+    </div>
+    <div class="room-code-display" id="room-created" style="display:none">
+      <div class="label">你的房间号（发给对手）</div>
+      <div class="code" id="room-code-text"></div>
+      <button class="btn btn-secondary" onclick="copyRoomCode()" style="margin-top:10px">📋 复制房间号</button>
+    </div>
+    <div class="status-text" id="menu-status"></div>
   </div>
 
+  <!-- 等待 -->
   <div id="waiting-screen" class="screen">
-    <h2>正在寻找对手...</h2>
+    <h2 id="waiting-title">等待对手加入...</h2>
     <div class="spinner-dots"><span></span><span></span><span></span></div>
-    <button class="btn btn-secondary" onclick="cancelMatch()">取消匹配</button>
+    <div class="room-code-display" id="waiting-room-code">
+      <div class="label">房间号</div>
+      <div class="code" id="waiting-code-text"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="leaveRoom()">取消</button>
   </div>
 
+  <!-- 开局倒计时 -->
+  <div id="countdown-overlay">
+    <div id="countdown-number">3</div>
+    <div id="countdown-label">准备开始!</div>
+  </div>
+
+  <!-- 游戏 -->
   <div id="game-screen" class="screen">
     <div class="game-topbar">
       <div class="game-title">⚔ 石头剪刀布</div>
@@ -193,47 +244,73 @@ const CARD_EMOJI={rock:'🪨',paper:'📄',scissors:'✂️',timeout:'⏰'};
 const CARD_NAME={rock:'石头',paper:'布',scissors:'剪刀',timeout:'超时'};
 const RESULT_TEXT={win:'你赢了!',lose:'你输了',draw:'平局'};
 
-let ws=null,connected=false,gameState='idle';
+let ws=null,connected=false,gameState='idle',roomCode='',iAmHost=false;
 let myCard=null,myScore=0,oppScore=0,timerInterval=null,timeLeft=ROUND_TIME;
 
 const $=id=>document.getElementById(id);
-const connectScreen=$('connect-screen'),waitingScreen=$('waiting-screen'),gameScreen=$('game-screen');
+const menuScreen=$('menu-screen'),waitingScreen=$('waiting-screen'),gameScreen=$('game-screen');
+const countdownOverlay=$('countdown-overlay'),countdownNum=$('countdown-number'),countdownLabel=$('countdown-label');
 const matchOverlay=$('match-over-overlay'),resultToast=$('result-toast');
 const roundResultEl=$('round-result'),timerText=$('timer-text'),timerProgress=$('timer-progress');
-const cardHand=$('card-hand'),myCardDisplay=$('my-card-display'),oppCardDisplay=$('opp-card-display');
+const cardHandEl=$('card-hand'),myCardDisplay=$('my-card-display'),oppCardDisplay=$('opp-card-display');
 const myCardStatus=$('my-card-status'),oppCardStatus=$('opp-card-status');
 const myScoreDots=$('my-score-dots'),oppScoreDots=$('opp-score-dots');
 const scoreMeBadge=$('score-me'),scoreOppBadge=$('score-opp');
-const connStatus=$('conn-status'),finalIcon=$('final-icon'),finalTitle=$('final-title'),finalScore=$('final-score');
+const menuStatus=$('menu-status'),finalIcon=$('final-icon'),finalTitle=$('final-title'),finalScore=$('final-score');
 const playCards=document.querySelectorAll('.play-card');
 
 function connect(){
   if(ws&&(ws.readyState===WebSocket.CONNECTING||ws.readyState===WebSocket.OPEN))return;
   const p=location.protocol==='https:'?'wss:':'ws:';
-  connStatus.textContent='正在连接服务器...';
+  menuStatus.textContent='正在连接服务器...';
   ws=new WebSocket(p+'//'+location.host);
-  ws.onopen=()=>{
-    connected=true;
-    connStatus.textContent='✅ 已连接，点击匹配对战';
-    if(gameState==='matching')doSendMatch();
-  };
+  ws.onopen=()=>{connected=true;menuStatus.textContent='✅ 已连接'};
   ws.onmessage=e=>{try{handleMessage(JSON.parse(e.data))}catch(err){console.error(err)}};
   ws.onclose=e=>{
     connected=false;ws=null;
     if(gameState==='playing'||gameState==='round_result')alert('连接断开，请刷新重试');
-    showScreen('connect');connStatus.textContent='❌ 连接断开，请刷新页面';
+    showScreen('menu');menuStatus.textContent='❌ 连接断开，请刷新页面';
   };
-  ws.onerror=()=>{connStatus.textContent='❌ 连接失败，请确认服务器已启动'};
+  ws.onerror=()=>{menuStatus.textContent='❌ 连接失败'};
 }
 function send(msg){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(msg))}
-function doSendMatch(){connected=true;send({type:'find_match'})}
 
 function handleMessage(msg){
   switch(msg.type){
-    case'waiting':gameState='waiting';showScreen('waiting');break;
+    case'room_created':
+      roomCode=msg.code;iAmHost=true;
+      gameState='waiting';
+      $('room-code-text').textContent=roomCode;
+      $('room-created').style.display='block';
+      $('waiting-code-text').textContent=roomCode;
+      $('waiting-room-code').style.display='block';
+      $('waiting-title').textContent='等待对手加入...';
+      showScreen('waiting');
+      break;
+    case'opponent_joined':
+      $('waiting-title').textContent='对手已加入!';
+      break;
+    case'room_joined':
+      roomCode=msg.code;iAmHost=false;gameState='waiting';
+      $('waiting-title').textContent='已加入房间!';
+      $('waiting-room-code').style.display='none';
+      showScreen('waiting');
+      break;
+    case'room_error':
+      alert(msg.message);menuStatus.textContent='加入失败: '+msg.message;
+      break;
+    case'room_left':
+      showScreen('menu');menuStatus.textContent='已取消';
+      break;
+    case'game_countdown':
+      showCountdown(msg.seconds);
+      if(msg.seconds===0){
+        setTimeout(()=>{countdownOverlay.classList.remove('show','go');showScreen('game')},600);
+      }
+      break;
     case'round_start':
       gameState='playing';myCard=null;timeLeft=msg.timeLeft;myScore=msg.myScore;oppScore=msg.oppScore;
-      updateScores();resetCards();showScreen('game');startTimer(msg.timeLeft);
+      updateScores();resetCards();startTimer(msg.timeLeft);
       updateScoreBadge(msg.myScore,msg.oppScore);
       roundResultEl.className='round-result';roundResultEl.textContent='';
       resultToast.className='';resultToast.classList.remove('show');
@@ -245,7 +322,7 @@ function handleMessage(msg){
       break;
     case'card_played':
       myCard=msg.card;myCardStatus.textContent='已出牌 ✓';myCardStatus.className='card-status played';
-      cardHand.classList.add('played');highlightSelectedCard(msg.card);
+      cardHandEl.classList.add('played');highlightSelectedCard(msg.card);
       myCardDisplay.className='card-display '+msg.card;
       myCardDisplay.innerHTML='<div class="card-icon">'+CARD_EMOJI[msg.card]+'</div><div class="card-label">'+CARD_NAME[msg.card]+'</div>';
       break;
@@ -261,30 +338,38 @@ function handleMessage(msg){
       myCardStatus.textContent='';myCardStatus.className='card-status';
       updateScores();updateScoreBadge(msg.myScore,msg.oppScore);
       showRoundResult(msg.result);
-      if(!msg.matchOver)setTimeout(()=>{cardHand.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'))},500);
+      if(!msg.matchOver)setTimeout(()=>{cardHandEl.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'))},500);
       break;
     case'match_over':
       gameState='match_over';stopTimer();myScore=msg.myScore;oppScore=msg.oppScore;
       updateScores();showMatchOver(myScore>oppScore);break;
-    case'opponent_disconnected':alert('对手断开了连接');resetGame();showScreen('connect');break;
-    case'match_cancelled':gameState='idle';showScreen('connect');break;
+    case'opponent_disconnected':alert('对手断开了连接');resetGame();showScreen('menu');break;
     case'pong':break;
   }
 }
 
 function showScreen(n){
-  [connectScreen,waitingScreen,gameScreen].forEach(s=>s.classList.remove('active'));
+  [menuScreen,waitingScreen,gameScreen].forEach(s=>s.classList.remove('active'));
   matchOverlay.classList.remove('show');
-  if(n==='connect')connectScreen.classList.add('active');
+  if(n==='menu')menuScreen.classList.add('active');
   else if(n==='waiting')waitingScreen.classList.add('active');
   else if(n==='game')gameScreen.classList.add('active');
+}
+function showCountdown(s){
+  countdownOverlay.classList.add('show');
+  countdownOverlay.classList.toggle('go',s===0);
+  countdownNum.textContent=s===0?'GO!':s;
+  countdownLabel.textContent=s===0?'':s===1?'准备好了吗...':'';
+  countdownNum.style.animation='none';
+  void countdownNum.offsetWidth;
+  countdownNum.style.animation=null;
 }
 function resetCards(){
   myCardDisplay.className='card-display placeholder';myCardDisplay.innerHTML='<span>请出牌</span>';
   oppCardDisplay.className='card-display placeholder';oppCardDisplay.innerHTML='<span>等待中</span>';
   myCardStatus.textContent='';myCardStatus.className='card-status';
   oppCardStatus.textContent='';oppCardStatus.className='card-status';
-  cardHand.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
+  cardHandEl.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
   roundResultEl.className='round-result';roundResultEl.textContent='';
 }
 function updateScores(){
@@ -310,25 +395,34 @@ function updateTimerDisplay(){
   let u=timeLeft<=10;timerProgress.classList.toggle('urgent',u);timerText.classList.toggle('urgent',u);
   timerText.style.animation=u?'timerPulse 0.6s ease-in-out infinite':'';
 }
-function findMatch(){
-  if(!ws||ws.readyState>WebSocket.OPEN)connect();
-  gameState='matching';
-  if(connected&&ws&&ws.readyState===WebSocket.OPEN)doSendMatch();
-  else{connStatus.textContent='正在连接，请稍候...';showScreen('waiting')}
+
+// 房间操作
+function createRoom(){
+  if(!connected)connect();
+  send({type:'create_room'});
 }
-function cancelMatch(){send({type:'cancel_match'});showScreen('connect')}
+function joinRoom(){
+  const code=$('room-input').value.trim().toUpperCase();
+  if(!code||code.length<4){menuStatus.textContent='请输入有效的房间号';return}
+  if(!connected)connect();
+  send({type:'join_room',code});
+}
+function leaveRoom(){send({type:'leave_room'});showScreen('menu')}
+function copyRoomCode(){
+  navigator.clipboard.writeText(roomCode).then(()=>menuStatus.textContent='✅ 已复制!').catch(()=>menuStatus.textContent='请手动复制: '+roomCode);
+}
 function playCard(c){if(gameState!=='playing'||myCard)return;send({type:'play',card:c})}
 function restartMatch(){
-  matchOverlay.classList.remove('show');resetCards();resetGame();showScreen('connect');
-  setTimeout(()=>findMatch(),500);
+  matchOverlay.classList.remove('show');resetCards();resetGame();showScreen('menu');
 }
 function resetGame(){
   myScore=0;oppScore=0;myCard=null;gameState='idle';stopTimer();
-  cardHand.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
+  cardHandEl.classList.remove('played');playCards.forEach(c=>c.classList.remove('selected'));
   updateScores();scoreMeBadge.textContent='0';scoreOppBadge.textContent='0';
   resultToast.className='';resultToast.classList.remove('show');
   roundResultEl.className='round-result';roundResultEl.textContent='';
   matchOverlay.classList.remove('show');
+  $('room-created').style.display='none';
 }
 function spawnConfetti(){
   let c=document.createElement('div');c.className='confetti';document.body.appendChild(c);
@@ -345,6 +439,7 @@ function spawnConfetti(){
   setTimeout(()=>c.remove(),5000);
 }
 setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN)send({type:'ping'})},30000);
+showScreen('menu');
 connect();
 </script>
 </body>
