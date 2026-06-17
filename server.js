@@ -33,7 +33,16 @@ const server = http.createServer((req, res) => {
 
   if (urlPath === '/') urlPath = '/index.html';
 
-  const filePath = path.join(__dirname, 'public', urlPath);
+  const publicDir = path.resolve(__dirname, 'public');
+  // 去掉前导 / 并 normalize，防止 .. 遍历
+  const safePath = path.normalize(urlPath).replace(/^[/\\]+/, '');
+  const filePath = path.resolve(publicDir, safePath);
+  // 确保解析后的路径在 public 目录内
+  if (!filePath.startsWith(publicDir + path.sep)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('403 Forbidden');
+    return;
+  }
   const ext = path.extname(filePath).toLowerCase();
 
   fs.readFile(filePath, (err, data) => {
